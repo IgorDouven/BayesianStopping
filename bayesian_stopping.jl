@@ -8,7 +8,7 @@ using Fontconfig
 using Colors
 using ColorSchemes
 using RCall
-addprocs(10)
+addprocs(...)
 
 @everywhere begin
     using Distributions
