@@ -471,9 +471,9 @@ end
     return Result(bias, [0], (mean(pr) - bias)^2, max_updates)
 end
 
-@time res_h = pmap(_->update_till_hdi(.1, .05), 1:1000)
-@time res_r = pmap(_->update_till_rii(.1, .95), 1:1000)
-@time res_bf = pmap(_->update_till_bf(3), 1:1000)
+res_h = pmap(_->update_till_hdi(.1, .05), 1:1000)
+res_r = pmap(_->update_till_rii(.1, .95), 1:1000)
+res_bf = pmap(_->update_till_bf(3), 1:1000)
 
 bias1 = [ res_h[i].bias for i in 1:length(res_h) ]
 lower1 = [ res_h[i].interval[1] for i in 1:length(res_h) ]
