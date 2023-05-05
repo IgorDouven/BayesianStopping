@@ -8,7 +8,7 @@ using Fontconfig
 using Colors
 using ColorSchemes
 using RCall
-addprocs(...)
+addprocs(...) # set number of cores to be made available for parallel computing
 
 @everywhere begin
     using Distributions
@@ -44,7 +44,7 @@ end
         binom_pmf = pdf(Binomial(n, g), k)
         return binom_pmf
     end
-    binom_bf = quadgk(x -> f(x, k, n), 0, 1)[1] / pdf(Binomial(n, p), k)
+    binom_bf = quadgk(x->f(x, k, n), 0, 1)[1] / pdf(Binomial(n, p), k)
     return binom_bf
 end
 
@@ -123,7 +123,7 @@ rii_final = [ accept_reject(rii_res, i) for i in 1:length(rii_res) ]
 
 ff = [ findfirst(x->(x<1/3 || x>3), bf_res[i][:, 1]) for i in 1:length(bf_res) ]
 bfr = [ bf_res[i][ff[i], 1] for i in 1:length(bf_res) ]
-bf_ar = [ ifelse(bfr[i] > 3, 2, 1) for i in 1:length(bf_res) ]
+bf_ar = [ ifelse(bfr[i]>3, 2, 1) for i in 1:length(bf_res) ]
 bf_est = [ bf_res[i][ff[i], 2] for i in 1:length(bf_res) ]
 bf_final = [ (ff[i], bf_est[i], bf_ar[i]) for i in 1:length(bf_res) ]
 
@@ -136,6 +136,22 @@ countmap(last.(rii_final))
 countmap(last.(bf_final))
 
 OneWayANOVATest([first.(hdi_final), first.(rii_final), first.(bf_final)]...)
+
+OneWayANOVATest([(getindex.(hdi_final[last.(hdi_final) .== 1], 2) .- .5).^2, (getindex.(rii_final[last.(rii_final) .== 1], 2) .- .5).^2, (getindex.(bf_final[last.(bf_final) .== 1], 2) .- .5).^2]...)
+EqualVarianceTTest((getindex.(hdi_final[last.(hdi_final) .== 1], 2) .- .5).^2, (getindex.(rii_final[last.(rii_final) .== 1], 2) .- .5).^2)
+EqualVarianceTTest((getindex.(hdi_final[last.(hdi_final) .== 1], 2) .- .5).^2, (getindex.(bf_final[last.(bf_final) .== 1], 2) .- .5).^2)
+EqualVarianceTTest((getindex.(rii_final[last.(rii_final) .== 1], 2) .- .5).^2, (getindex.(bf_final[last.(bf_final) .== 1], 2) .- .5).^2)
+
+mean_and_std((getindex.(hdi_final[last.(hdi_final) .== 1], 2) .- .5).^2)
+mean_and_std((getindex.(rii_final[last.(rii_final) .== 1], 2) .- .5).^2)
+mean_and_std((getindex.(bf_final[last.(bf_final) .== 1], 2) .- .5).^2)
+
+mean_and_std((getindex.(bf_final[last.(bf_final) .== 2], 2) .- .5).^2)
+
+EqualVarianceTTest((getindex.(hdi_final[last.(hdi_final) .== 3], 2) .- .5).^2, (getindex.(rii_final[last.(rii_final) .== 3], 2) .- .5).^2)
+
+mean_and_std((getindex.(hdi_final[last.(hdi_final) .== 3], 2) .- .5).^2)
+mean_and_std((getindex.(rii_final[last.(rii_final) .== 3], 2) .- .5).^2)
 
 s1 = sum(last.(hdi_final) .== 1)
 s2 = sum(last.(rii_final) .== 1)
@@ -242,23 +258,29 @@ draw(PDF("bf_prop_plot_gray.pdf"), bf_prop_plot)
 
 # for other panels in the rightmost column of figure 13.6 in kruschke
 
-p_hdi_accept = plot(x=getindex.(hdi_final[last.(hdi_final) .== 1], 2), Geom.histogram(bincount=25), Guide.xlabel("Sample proportion at decision"), Coord.cartesian(xmin=.4, xmax=.601), Theme(default_color=colorant"slategray"))
-p_rii_accept = plot(x=getindex.(rii_final[last.(rii_final) .== 1], 2), Geom.histogram(bincount=25), Guide.xlabel("Sample proportion at decision"), Coord.cartesian(xmin=.4, xmax=.601), Theme(default_color=colorant"slategray"))
-p_bf_accept = plot(x=getindex.(bf_final[last.(bf_final) .== 1], 2), Geom.histogram(bincount=25), Guide.xlabel("Sample proportion at decision"), Coord.cartesian(xmin=.4, xmax=.601), Theme(default_color=colorant"slategray"))
+p_hdi_accept = plot(x=getindex.(hdi_final[last.(hdi_final) .== 1], 2), Geom.histogram(bincount=25), Guide.title("HDI: Accept null"), Guide.xlabel("Sample proportion at decision"), Guide.ylabel("Count"), Coord.cartesian(xmin=.4, xmax=.601), Theme(default_color=colorant"slategray", major_label_font_size=14pt, minor_label_font_size=12pt));
+p_rii_accept = plot(x=getindex.(rii_final[last.(rii_final) .== 1], 2), Geom.histogram(bincount=25), Guide.title("RII: Accept null"), Guide.xlabel("Sample proportion at decision"), Guide.ylabel("Count"), Coord.cartesian(xmin=.4, xmax=.601), Theme(default_color=colorant"slategray", major_label_font_size=14pt, minor_label_font_size=12pt));
+p_bf_accept = plot(x=getindex.(bf_final[last.(bf_final) .== 1], 2), Geom.histogram(bincount=25), Guide.title("BF: Accept null"), Guide.xlabel("Sample proportion at decision"), Guide.ylabel("Count"), Coord.cartesian(xmin=.4, xmax=.601), Theme(default_color=colorant"slategray", major_label_font_size=14pt, minor_label_font_size=12pt));
 
 draw(PDF("hdi_hist05_acc.pdf"), p_hdi_accept)
 draw(PDF("rii_hist05_acc.pdf"), p_rii_accept)
 draw(PDF("bf_hist05_acc.pdf"), p_bf_accept)
 
-p_hdi_reject = plot(x=getindex.(hdi_final[last.(hdi_final) .== 2], 2), Geom.histogram(bincount=25), Guide.xlabel("Sample proportion at decision"), Coord.cartesian(xmin=0, xmax=1), Theme(default_color=colorant"slategray"))
-p_rii_reject = plot(x=getindex.(rii_final[last.(rii_final) .== 2], 2), Geom.histogram(bincount=25), Guide.xlabel("Sample proportion at decision"), Coord.cartesian(xmin=0, xmax=1), Theme(default_color=colorant"slategray"))
-p_bf_reject = plot(x=getindex.(bf_final[last.(bf_final) .== 2], 2), Geom.histogram(bincount=25), Guide.xlabel("Sample proportion at decision"), Coord.cartesian(xmin=0, xmax=1), Theme(default_color=colorant"slategray"))
+p_hdi_reject = plot(x=getindex.(hdi_final[last.(hdi_final) .== 2], 2), Geom.histogram(bincount=25), Guide.title("HDI: Reject null"), Guide.xlabel("Sample proportion at decision"), Guide.ylabel("Count"), Coord.cartesian(xmin=0, xmax=1), Theme(default_color=colorant"slategray", major_label_font_size=14pt, minor_label_font_size=12pt));
+p_rii_reject = plot(x=getindex.(rii_final[last.(rii_final) .== 2], 2), Geom.histogram(bincount=25), Guide.title("RII: Reject null"), Guide.xlabel("Sample proportion at decision"), Guide.ylabel("Count"), Coord.cartesian(xmin=0, xmax=1), Theme(default_color=colorant"slategray", major_label_font_size=14pt, minor_label_font_size=12pt));
+p_bf_reject = plot(x=getindex.(bf_final[last.(bf_final) .== 2], 2), Geom.histogram(bincount=25), Guide.title("BF: Reject null"), Guide.xlabel("Sample proportion at decision"), Guide.ylabel("Count"), Coord.cartesian(xmin=0, xmax=1), Theme(default_color=colorant"slategray", major_label_font_size=14pt, minor_label_font_size=12pt));
 
 draw(PDF("hdi_hist05.pdf"), p_hdi_reject)
 draw(PDF("rii_hist05.pdf"), p_rii_reject)
 draw(PDF("bf_hist05.pdf"), p_bf_reject)
 
-# the rii criterion takes on average longer to stop, but when it stops, it more often proposes to accept (correctly) the null hypothesis
+p_hdi_und = plot(x=getindex.(hdi_final[last.(hdi_final) .== 3], 2), Geom.histogram(bincount=25), Guide.title("HDI: Undecided"), Guide.xlabel("Sample proportion at decision"), Guide.ylabel("Count"), Coord.cartesian(xmin=0, xmax=1), Theme(default_color=colorant"slategray", major_label_font_size=14pt, minor_label_font_size=12pt));
+p_rii_und = plot(x=getindex.(rii_final[last.(rii_final) .== 3], 2), Geom.histogram(bincount=25), Guide.title("RII: Undecided"), Guide.xlabel("Sample proportion at decision"), Guide.ylabel("Count"), Coord.cartesian(xmin=0, xmax=1), Theme(default_color=colorant"slategray", major_label_font_size=14pt, minor_label_font_size=12pt));
+p_bf_und = plot(x=getindex.(bf_final[last.(bf_final) .== 3], 2), Geom.histogram(bincount=25), Guide.title("BF: Undecided"), Guide.xlabel("Sample proportion at decision"), Guide.ylabel("Count"), Coord.cartesian(xmin=0, xmax=1), Theme(default_color=colorant"slategray", major_label_font_size=14pt, minor_label_font_size=12pt));
+
+draw(PDF("hdi_hist05_und.pdf"), p_hdi_und)
+draw(PDF("rii_hist05_und.pdf"), p_rii_und)
+draw(PDF("bf_hist05_und.pdf"), p_bf_und)
 
 ################
 ## BIAS = .65 ##
@@ -276,7 +298,7 @@ bf_res_f = pmap(_->upd_bf(.65), 1:1000)
 
 fff = [ findfirst(x->(x<1/3 || x>3), bf_res_f[i][:, 1]) for i in 1:length(bf_res_f) ]
 bfrf = [ bf_res_f[i][fff[i], 1] for i in 1:length(bf_res_f) ]
-bf_arf = [ ifelse(bfrf[i] > 3, 2, 1) for i in 1:length(bf_res_f) ]
+bf_arf = [ ifelse(bfrf[i]>3, 2, 1) for i in 1:length(bf_res_f) ]
 bf_estf = [ bf_res_f[i][fff[i], 2] for i in 1:length(bf_res_f) ]
 bf_final_f = [ (fff[i], bf_estf[i], bf_arf[i]) for i in 1:length(bf_res_f) ]
 
@@ -289,6 +311,15 @@ countmap(last.(rii_final_f))
 countmap(last.(bf_final_f))
 
 OneWayANOVATest([first.(hdi_final_f), first.(rii_final_f), first.(bf_final_f)]...)
+
+OneWayANOVATest([(getindex.(hdi_final_f[last.(hdi_final_f) .== 2], 2) .- .65).^2, (getindex.(rii_final_f[last.(rii_final_f) .== 2], 2) .- .65).^2, (getindex.(bf_final_f[last.(bf_final) .== 2], 2) .- .65).^2]...)
+EqualVarianceTTest((getindex.(hdi_final_f[last.(hdi_final_f) .== 2], 2) .- .65).^2, (getindex.(rii_final_f[last.(rii_final_f) .== 2], 2) .- .65).^2)
+EqualVarianceTTest((getindex.(hdi_final_f[last.(hdi_final_f) .== 2], 2) .- .65).^2, (getindex.(bf_final_f[last.(rii_final_f) .== 2], 2) .- .65).^2)
+EqualVarianceTTest((getindex.(hdi_final_f[last.(rii_final_f) .== 2], 2) .- .65).^2, (getindex.(bf_final_f[last.(rii_final_f) .== 2], 2) .- .65).^2)
+
+mean_and_std((getindex.(hdi_final_f[last.(hdi_final_f) .== 2], 2) .- .65).^2)
+mean_and_std((getindex.(rii_final_f[last.(rii_final_f) .== 2], 2) .- .65).^2)
+mean_and_std((getindex.(bf_final_f[last.(bf_final_f) .== 2], 2) .- .65).^2)
 
 s1f = sum(last.(hdi_final_f) .== 1)
 s2f = sum(last.(rii_final_f) .== 1)
@@ -396,17 +427,17 @@ draw(PDF("bf_prop_plot_gray_f.pdf"), bf_prop_plot_f)
 
 # for other panels in the rightmost column of figure 13.7 in kruschke
 
-p_hdi_accept_f = plot(x=getindex.(hdi_final_f[last.(hdi_final_f) .== 1], 2), Geom.histogram(bincount=25), Guide.xlabel("Sample proportion at decision"), Coord.cartesian(xmin=.4, xmax=.601), Theme(default_color=colorant"slategray"))
-p_rii_accept_f = plot(x=getindex.(rii_final_f[last.(rii_final_f) .== 1], 2), Geom.histogram(bincount=25), Guide.xlabel("Sample proportion at decision"), Coord.cartesian(xmin=.4, xmax=.601), Theme(default_color=colorant"slategray"))
-p_bf_accept_f = plot(x=getindex.(bf_final_f[last.(bf_final_f) .== 1], 2), Geom.histogram(bincount=25), Guide.xlabel("Sample proportion at decision"), Coord.cartesian(xmin=.4, xmax=.601), Theme(default_color=colorant"slategray"))
+p_hdi_accept_f = plot(x=getindex.(hdi_final_f[last.(hdi_final_f) .== 1], 2), Geom.histogram(bincount=25), Guide.title("HDI: Accept null"), Guide.xlabel("Sample proportion at decision"), Guide.ylabel("Count"), Coord.cartesian(xmin=0, xmax=1), Theme(default_color=colorant"slategray", major_label_font_size=14pt, minor_label_font_size=12pt))
+p_rii_accept_f = plot(x=getindex.(rii_final_f[last.(rii_final_f) .== 1], 2), Geom.histogram(bincount=25), Guide.title("RII: Accept null"), Guide.xlabel("Sample proportion at decision"), Guide.ylabel("Count"), Coord.cartesian(xmin=0, xmax=1), Theme(default_color=colorant"slategray", major_label_font_size=14pt, minor_label_font_size=12pt))
+p_bf_accept_f = plot(x=getindex.(bf_final_f[last.(bf_final_f) .== 1], 2), Geom.histogram(bincount=25), Guide.title("BF: Accept null"), Guide.xlabel("Sample proportion at decision"), Guide.ylabel("Count"), Coord.cartesian(xmin=0, xmax=1), Theme(default_color=colorant"slategray", major_label_font_size=14pt, minor_label_font_size=12pt))
 
 draw(PDF("hdi_hist065_acc.pdf"), p_hdi_accept_f)
 draw(PDF("rii_hist065_acc.pdf"), p_rii_accept_f)
 draw(PDF("bf_hist065_acc.pdf"), p_bf_accept_f)
 
-p_hdi_reject_f = plot(x=getindex.(hdi_final_f[last.(hdi_final_f) .== 2], 2), Geom.histogram(bincount=25), Guide.xlabel("Sample proportion at decision"), Coord.cartesian(xmin=0, xmax=1), Theme(default_color=colorant"slategray"))
-p_rii_reject_f = plot(x=getindex.(rii_final_f[last.(rii_final_f) .== 2], 2), Geom.histogram(bincount=25), Guide.xlabel("Sample proportion at decision"), Coord.cartesian(xmin=0, xmax=1), Theme(default_color=colorant"slategray"))
-p_bf_reject_f = plot(x=getindex.(bf_final_f[last.(bf_final_f) .== 2], 2), Geom.histogram(bincount=25), Guide.xlabel("Sample proportion at decision"), Coord.cartesian(xmin=0, xmax=1), Theme(default_color=colorant"slategray"))
+p_hdi_reject_f = plot(x=getindex.(hdi_final_f[last.(hdi_final_f) .== 2], 2), Geom.histogram(bincount=25), Guide.title("HDI: Reject null"), Guide.xlabel("Sample proportion at decision"), Guide.ylabel("Count"), Coord.cartesian(xmin=0, xmax=1), Theme(default_color=colorant"slategray", major_label_font_size=14pt, minor_label_font_size=12pt))
+p_rii_reject_f = plot(x=getindex.(rii_final_f[last.(rii_final_f) .== 2], 2), Geom.histogram(bincount=25), Guide.title("RII: Reject null"), Guide.xlabel("Sample proportion at decision"), Guide.ylabel("Count"), Coord.cartesian(xmin=0, xmax=1), Theme(default_color=colorant"slategray", major_label_font_size=14pt, minor_label_font_size=12pt))
+p_bf_reject_f = plot(x=getindex.(bf_final_f[last.(bf_final_f) .== 2], 2), Geom.histogram(bincount=25), Guide.title("BF: Reject null"), Guide.xlabel("Sample proportion at decision"), Guide.ylabel("Count"), Coord.cartesian(xmin=0, xmax=1), Theme(default_color=colorant"slategray", major_label_font_size=14pt, minor_label_font_size=12pt))
 
 draw(PDF("hdi_hist065.pdf"), p_hdi_reject_f)
 draw(PDF("rii_hist065.pdf"), p_rii_reject_f)
@@ -460,18 +491,17 @@ end
     return Result(bias, rii(pr; θ=θ), (mean(pr) - bias)^2, max_updates)
 end
 
-@everywhere function update_till_bf(fair::Bool=true; max_updates::Int=1000, numb_samples::Int=2_500_000)
+@everywhere function update_till_bf(thresh::Int64; max_updates::Int=1000, numb_samples::Int=2_500_000)
     bias = rand()
     pr = rand(Uniform(0, 1), numb_samples)
     flip_count = 0
-    p = fair ? .5 : bias
     for i in 1:max_updates
         flip = Int(rand(Bernoulli(bias)))
         pr = cont_upd_var(pr, flip, numb_samples)
         flip_count += flip
-        bf = bayesfactor(flip_count, i, p)
+        bf = bayesfactor(flip_count, i)
         score = (mean(pr) - bias)^2
-        if (bf < 1/3) || (bf > 3)
+        if (bf < 1/thresh) || (bf > thresh)
             return Result(bias, [bf], score, i)
         end
     end
@@ -480,8 +510,7 @@ end
 
 @time res_h = pmap(_->update_till_hdi(.1, .05), 1:1000)
 @time res_r = pmap(_->update_till_rii(.1, .95), 1:1000)
-@time res_b = pmap(_->update_till_bf(), 1:1000)
-@time res_bf = pmap(_->update_till_bf(false), 1:1000)
+@time res_bf = pmap(_->update_till_bf(3), 1:1000)
 
 bias1 = [ res_h[i].bias for i in 1:length(res_h) ]
 lower1 = [ res_h[i].interval[1] for i in 1:length(res_h) ]
@@ -503,26 +532,48 @@ min.(bias2 .> lower2, bias2 .< upper2) |> mean_and_std
 mean_and_std(scores2)
 mean_and_std(stop2)
 
-scores3 = [ res_b[i].score for i in 1:length(res_b) ]
-stop3 = [ res_b[i].stop for i in 1:length(res_b) ]
+scores3 = [ res_bf[i].score for i in 1:length(res_bf) ]
+stop3 = [ res_bf[i].stop for i in 1:length(res_bf) ]
 
 mean_and_std(scores3)
 mean_and_std(stop3)
-(1000 - sum([ res_b[i].interval[1] for i in 1:length(res_b) ] .> 3))/1000
-
-scores3f = [ res_bf[i].score for i in 1:length(res_bf) ]
-stop3f = [ res_bf[i].stop for i in 1:length(res_bf) ]
-
-mean_and_std(scores3f)
-mean_and_std(stop3f)
 (1000 - sum([ res_bf[i].interval[1] for i in 1:length(res_bf) ] .< 1/3))/1000
 
+OneWayANOVATest([stop1, stop2, stop3]...)
+EqualVarianceTTest(stop1, stop2)
+EqualVarianceTTest(stop1, stop3)
+EqualVarianceTTest(stop2, stop3)
 
 OneWayANOVATest([scores1, scores2, scores3]...)
-
 EqualVarianceTTest(scores1, scores2)
-EqualVarianceTTest(stop1, stop2)
-EqualVarianceTTest(min.(bias1 .> lower1, bias1 .< upper1), min.(bias2 .> lower2, bias2 .< upper2))
+EqualVarianceTTest(scores1, scores3)
+EqualVarianceTTest(scores2, scores3)
+
+sg1 = sum(min.(bias1 .> lower1, bias1 .< upper1))
+sg2 = sum(min.(bias2 .> lower2, bias2 .< upper2))
+sg3 = sum(1 .- [ res_bf[i].interval[1] for i in 1:length(res_bf) ] .< 1/3)
+
+@rput sg1
+@rput sg2
+@rput sg3
+
+R"""
+prop.test(c(sg1, sg2, sg3), c(1000, 1000, 1000))
+"""
+
+R"""
+prop.test(c(sg1, sg3), c(1000, 1000))
+"""
+
+R"""
+prop.test(c(sg2, sg3), c(1000, 1000))
+"""
+
+R"""
+prop.test(c(sg1, sg2), c(1000, 1000))
+"""
+
+# further generalization
 
 function run_simulation_hdi(α::Float64)
     res = pmap(_->update_till_hdi(.1, α), 1:1000)
@@ -531,7 +582,7 @@ function run_simulation_hdi(α::Float64)
     upper = [ res[i].interval[2] for i in 1:length(res) ]
     scores = [ res[i].score for i in 1:length(res) ]
     stop = [ res[i].stop for i in 1:length(res) ]
-    return mean_and_std(min.(bias .> lower, bias .< upper)), mean(scores), mean_and_std(stop)
+    return mean_and_std(min.(bias .> lower, bias .< upper)), mean_and_std(scores), mean_and_std(stop)
 end
 
 sim_res_hdi = [ run_simulation_hdi(i) for i in .05:.05:.5 ]
@@ -543,63 +594,18 @@ function run_simulation_rii(θ::Float64)
     upper = [ res[i].interval[2] for i in 1:length(res) ]
     scores = [ res[i].score for i in 1:length(res) ]
     stop = [ res[i].stop for i in 1:length(res) ]
-    return mean_and_std(min.(bias .> lower, bias .< upper)), mean(scores), mean_and_std(stop)
+    return mean_and_std(min.(bias .> lower, bias .< upper)), mean_and_std(scores), mean_and_std(stop)
 end
 
 sim_res_rii = [ run_simulation_rii(i) for i in .5:.05:.95 ]
 
-p1 = plot(x=first.(first.(sim_res_hdi)), y=first.(last.(sim_res_hdi)), Geom.point, Geom.line,
-     layer(x=first.(first.(sim_res_rii)), y=first.(last.(sim_res_rii)), Geom.point, Geom.line, style(default_color=colorant"lightgray"), order=1),
-     Guide.xlabel("Proportion truth within interval"),
-     Guide.ylabel("Updates until acceptance"),
-     Guide.manual_color_key("Rule", ["HDI", "RII"], ["slategray", "lightgray"]),
-     Coord.cartesian(xflip=true),
-     style(default_color=colorant"slategray", minor_label_font_size=10pt, major_label_font_size=12pt,
-     key_label_font_size=10pt, key_title_font_size=11pt,
-     colorkey_swatch_shape=:circle))
+function run_simulation_bf(thresh::Int64)
+    res = pmap(_->update_till_bf(thresh), 1:1000)
+    bf = [ res[i].interval[1] for i in 1:length(res) ]
+    bfs = bf .> thresh
+    scores = [ res[i].score for i in 1:length(res) ]
+    stop = [ res[i].stop for i in 1:length(res) ]
+    return mean_and_std(bfs), mean_and_std(scores), mean_and_std(stop)
+end
 
-draw(PDF("gen_par_frnt.pdf"), p1)
-
-p2 = plot(x=0.5:0.05:0.95, y=reverse(first.(first.(sim_res_hdi))), Geom.point, Geom.line,
-     layer(x=0.5:0.05:0.95, y=first.(first.(sim_res_rii)), Geom.point, Geom.line, style(default_color=colorant"lightgray"), order=1),
-     Guide.ylabel("Proportion truth within interval"),
-     Guide.xlabel("(1 - α) / θ"),
-     Guide.manual_color_key("Rule", ["HDI", "RII"], ["slategray", "lightgray"]),
-     style(default_color=colorant"slategray", minor_label_font_size=10pt, major_label_font_size=12pt,
-     key_label_font_size=10pt, key_title_font_size=11pt,
-     colorkey_swatch_shape=:circle))
-
-draw(PDF("gen_prop_truth.pdf"), p2)
-
-p3 = plot(x=0.5:0.05:0.95, y=reverse(first.(last.(sim_res_hdi))), Geom.point, Geom.line,
-     layer(x=0.5:0.05:0.95, y=first.(last.(sim_res_rii)), Geom.point, Geom.line, style(default_color=colorant"lightgray"), order=1),
-     Guide.ylabel("Updates until acceptance"),
-     Guide.xlabel("(1 - α) / θ"),
-     Guide.manual_color_key("Rule", ["HDI", "RII"], ["slategray", "lightgray"]),
-     style(default_color=colorant"slategray", minor_label_font_size=10pt, major_label_font_size=12pt,
-     key_label_font_size=10pt, key_title_font_size=11pt,
-     colorkey_swatch_shape=:circle))
-
-draw(PDF("gen_speed.pdf"), p3)
-
-p4 = plot(x=0.5:0.05:0.95, y=reverse(getindex.(sim_res_hdi, 2)), Geom.point, Geom.line,
-     layer(x=0.5:0.05:0.95, y=getindex.(sim_res_rii, 2), Geom.point, Geom.line, style(default_color=colorant"lightgray"), order=1),
-     Guide.ylabel("Score"),
-     Guide.xlabel("(1 - α) / θ"),
-     Guide.manual_color_key("Rule", ["HDI", "RII"], ["slategray", "lightgray"]),
-     style(default_color=colorant"slategray", minor_label_font_size=10pt, major_label_font_size=12pt,
-     key_label_font_size=10pt, key_title_font_size=11pt,
-     colorkey_swatch_shape=:circle))
-
-draw(PDF("gen_score.pdf"), p4)
-
-p5 = plot(x=getindex.(sim_res_hdi, 2), y=first.(last.(sim_res_hdi)), Geom.point, Geom.line,
-     layer(x=getindex.(sim_res_rii, 2), y=first.(last.(sim_res_rii)), Geom.point, Geom.line, style(default_color=colorant"lightgray"), order=1),
-     Guide.xlabel("Score"),
-     Guide.ylabel("Updates until acceptance"),
-     Guide.manual_color_key("Rule", ["HDI", "RII"], ["slategray", "lightgray"]),
-     style(default_color=colorant"slategray", minor_label_font_size=10pt, major_label_font_size=12pt,
-     key_label_font_size=10pt, key_title_font_size=11pt,
-     colorkey_swatch_shape=:circle))
-
-draw(PDF("score_par_frnt.pdf"), p5)
+sim_res_bf = [ run_simulation_bf(i) for i in 1:10 ]
