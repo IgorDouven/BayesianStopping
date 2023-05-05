@@ -168,13 +168,9 @@ prop.test(c(s1, s2, s3), c(1000, 1000, 1000))
 # to create figure 13.6, top right panel, from kruschke's book
 
 hdi_switch = first.(hdi_final[last.(hdi_final) .== 1])
-
 hdi_switches = ones(Int, 1500, length(hdi_switch))
-
 [ hdi_switches[1:hdi_switch[i], i] .-= 1 for i in 1:length(hdi_switch) ]
-
 hdi_proportion_accepted_per_time_step = mean(hdi_switches, dims=2) .* length(hdi_switch)
-
 hdi_undecided_per_time_step = fill(1000, 1500) .- hdi_proportion_accepted_per_time_step
 
 df_hdi = DataFrame(accepted = vec(hdi_proportion_accepted_per_time_step), 
@@ -195,13 +191,9 @@ draw(PDF("hdi_prop_plot_gray.pdf"), hdi_prop_plot)
 # same for rii
 
 rii_switch = first.(rii_final[last.(rii_final) .== 1])
-
 rii_switches = ones(Int, 1500, length(rii_switch))
-
 [ rii_switches[1:rii_switch[i], i] .-= 1 for i in 1:length(rii_switch) ]
-
 rii_proportion_accepted_per_time_step = mean(rii_switches, dims=2) .* length(rii_switch)
-
 rii_undecided_per_time_step = fill(1000, 1500) .- rii_proportion_accepted_per_time_step
 
 df_rii = DataFrame(accepted = vec(rii_proportion_accepted_per_time_step), 
@@ -222,21 +214,13 @@ draw(PDF("rii_prop_plot_gray.pdf"), rii_prop_plot)
 # same for bf
 
 bf_switch = first.(bf_final[last.(bf_final) .== 1])
-
 bf_switches = ones(Int, 1500, length(bf_switch))
-
 [ bf_switches[1:bf_switch[i], i] .-= 1 for i in 1:length(bf_switch) ]
-
 bf_proportion_accepted_per_time_step = mean(bf_switches, dims=2) .* length(bf_switch)
-
 bf_switch_r = first.(bf_final[last.(bf_final) .== 2])
-
 bf_switches_r = ones(Int, 1500, length(bf_switch_r))
-
 [ bf_switches_r[1:bf_switch_r[i], i] .-= 1 for i in 1:length(bf_switch_r) ]
-
 bf_proportion_rejected_per_time_step = mean(bf_switches_r, dims=2) .* length(bf_switch_r)
-
 bf_undecided_per_time_step = fill(1000, 1500) .- (bf_proportion_accepted_per_time_step .+ bf_proportion_rejected_per_time_step)
 
 df_bf = DataFrame(accepted = vec(bf_proportion_accepted_per_time_step), 
@@ -287,15 +271,10 @@ draw(PDF("bf_hist05_und.pdf"), p_bf_und)
 ################
 
 hdi_res_f = pmap(_->upd_hdi(.65), 1:1000)
-
 hdi_final_f = [ accept_reject(hdi_res_f, i) for i in 1:length(hdi_res_f) ]
-
 rii_res_f = pmap(_->upd_rii(.65), 1:1000)
-
 rii_final_f = [ accept_reject(rii_res_f, i) for i in 1:length(rii_res_f) ]
-
 bf_res_f = pmap(_->upd_bf(.65), 1:1000)
-
 fff = [ findfirst(x->(x<1/3 || x>3), bf_res_f[i][:, 1]) for i in 1:length(bf_res_f) ]
 bfrf = [ bf_res_f[i][fff[i], 1] for i in 1:length(bf_res_f) ]
 bf_arf = [ ifelse(bfrf[i]>3, 2, 1) for i in 1:length(bf_res_f) ]
@@ -336,13 +315,9 @@ prop.test(c(s1f, s2f, s3f), c(1000, 1000, 1000))
 # figure 13.7
 
 hdi_switch_f = first.(hdi_final_f[last.(hdi_final_f) .== 2])
-
 hdi_switches_f = ones(Int, 1500, length(hdi_switch_f))
-
 [ hdi_switches_f[1:hdi_switch_f[i], i] .-= 1 for i in 1:length(hdi_switch_f) ]
-
 hdi_proportion_reject_per_time_step = mean(hdi_switches_f, dims=2) .* length(hdi_switch_f)
-
 hdi_undecided_per_time_step_f = fill(1000, 1500) .- hdi_proportion_reject_per_time_step
 
 df_hdi_f = DataFrame(accepted = fill(0, 1500), 
@@ -364,13 +339,9 @@ draw(PDF("hdi_prop_plot_f.pdf"), hdi_prop_plot_f)
 # same for rii
 
 rii_switch_f = first.(rii_final_f[last.(rii_final_f) .== 2])
-
 rii_switches_f = ones(Int, 1500, length(rii_switch_f))
-
 [ rii_switches_f[1:rii_switch_f[i], i] .-= 1 for i in 1:length(rii_switch_f) ]
-
 rii_proportion_reject_per_time_step = mean(rii_switches_f, dims=2) .* length(rii_switch_f)
-
 rii_undecided_per_time_step_f = fill(1000, 1500) .- rii_proportion_reject_per_time_step
 
 df_rii_f = DataFrame(accepted = fill(0, 1500), 
@@ -391,21 +362,13 @@ draw(PDF("rii_prop_plot_f.pdf"), rii_prop_plot_f)
 # same for bf
 
 bf_switch_f = first.(bf_final_f[last.(bf_final_f) .== 2])
-
 bf_switches_f = ones(Int, 1500, length(bf_switch_f))
-
 [ bf_switches_f[1:bf_switch_f[i], i] .-= 1 for i in 1:length(bf_switch_f) ]
-
 bf_proportion_rejected_per_time_step_f = mean(bf_switches_f, dims=2) .* length(bf_switch_f)
-
 bf_switch_a = first.(bf_final_f[last.(bf_final_f) .== 1])
-
 bf_switches_a = ones(Int, 1500, length(bf_switch_a))
-
 [ bf_switches_a[1:bf_switch_a[i], i] .-= 1 for i in 1:length(bf_switch_a) ]
-
 bf_proportion_accepted_per_time_step_f = mean(bf_switches_a, dims=2) .* length(bf_switch_a)
-
 bf_undecided_per_time_step_f = fill(1000, 1500) .- (bf_proportion_accepted_per_time_step_f .+ bf_proportion_rejected_per_time_step_f)
 
 df_bf_f = DataFrame(accepted = vec(bf_proportion_accepted_per_time_step_f), 
